@@ -16,7 +16,7 @@ PowerShell 5.1 でも動作します。
 ---
 
 ## スクリーンショット
-![OfflineList Dat Converter]( "アプリウィンドウ")
+![OfflineList Dat Converter](https://github.com/user-attachments/assets/5e078d38-8a33-46e1-87f3-b0e52dd34427 "アプリウィンドウ")
 
 ---
 
@@ -154,5 +154,6 @@ pwsh -WindowStyle Hidden -ExecutionPolicy Bypass -File .\OLDATCONV.ps1
 ZIP 出力には 7za.exe  / 7z.exe  が必要です
 
 7Z の入力（解凍）にも 7za.exe  / 7z.exe  が必要です
+
 
 本アプリは Microsoft Copilot の支援により作成されています
