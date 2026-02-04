@@ -145,15 +145,17 @@ PowerShell 5.1 でも動作します。
 
 ```powershell
 pwsh -WindowStyle Hidden -ExecutionPolicy Bypass -File .\OLDATCONV.ps1
-ライセンス
-本プロジェクトは MIT License のもとで公開されています。
-
+```
+---
 注意事項
 本アプリは OfflineList DAT の仕様に基づいて動作します
 
 ZIP 出力には 7za.exe  / 7z.exe  が必要です
 
 7Z の入力（解凍）にも 7za.exe  / 7z.exe  が必要です
-
+---
+ライセンス
+本プロジェクトは MIT License のもとで公開されています。
 
 本アプリは Microsoft Copilot の支援により作成されています
+
