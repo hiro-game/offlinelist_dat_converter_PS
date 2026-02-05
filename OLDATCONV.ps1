@@ -65,7 +65,7 @@ $xaml = @"
                     <CheckBox x:Name="ChkVersionFile"
                               Grid.Column="1"
                               Margin="12,0,4,0"
-                              Content="バージョンファイル出力 (system.txt)"/>
+                              Content="バージョンファイル出力"/>
 
                     <CheckBox x:Name="ChkUseDatFileName"
                               Grid.Column="2"
@@ -147,7 +147,7 @@ $xaml = @"
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <TextBlock Text="imFolder:" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                    <TextBlock Text="サムネイルフォルダ:" VerticalAlignment="Center" Margin="12,0,4,0"/>
                     <TextBox x:Name="TxtImUrl" Width="120" IsReadOnly="True" Background="#EEE"/>
                 </StackPanel>
             </Grid>
