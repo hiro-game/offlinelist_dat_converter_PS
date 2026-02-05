@@ -82,8 +82,9 @@ PowerShell 5.1 でも動作します。
    - **screenshotsWidth / screenshotsHeight**  
      - `<screenshotsWidth>` / `<screenshotsHeight>` に出力される数値  
      - 例：`320` / `224`
-   - **newDat の URL 関連**  
-     - `datVersionURL`：DAT バージョン情報ファイル（例：`md_ver.txt`）  
+   - **newDat の URL 関連**
+     - `baseURL`: アップデート機能を使用する際に各種ファイルをアップロードしているサーバーのURL
+     - `datVersionURL`：DAT バージョン情報ファイル（例：`md.txt`）  
      - `datURL`：DAT 本体（例：`md.zip`）  
      - `imURL`：画像フォルダ（例：`mdimg`）  
      - これらは `baseURL + 各ファイル名/フォルダ名` として XML に出力されます。
@@ -158,5 +159,6 @@ ZIP 出力には 7za.exe  / 7z.exe  が必要です
 本プロジェクトは MIT License のもとで公開されています。
 
 本アプリは Microsoft Copilot の支援により作成されています
+
 
 
