@@ -16,7 +16,7 @@ PowerShell 5.1 でも動作します。
 ---
 
 ## スクリーンショット
-![OfflineList Dat Converter](https://github.com/user-attachments/assets/5e078d38-8a33-46e1-87f3-b0e52dd34427 "アプリウィンドウ")
+![OfflineList Dat Converter](https://github.com/user-attachments/assets/8a620abb-c6ba-4982-9a61-7e3b39936265 "アプリウィンドウ")
 
 ---
 
@@ -158,4 +158,5 @@ ZIP 出力には 7za.exe  / 7z.exe  が必要です
 本プロジェクトは MIT License のもとで公開されています。
 
 本アプリは Microsoft Copilot の支援により作成されています
+
 
