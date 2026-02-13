@@ -590,9 +590,19 @@ function Build-ConfigurationXml([string]$datVersion) {
 
     [void]$sb.AppendLine("    <infos>")
     $infos = @(
-        "title","publisher","sourceRom","im1CRC","saveType","im2CRC",
-        "comment","location","languages","releaseNumber","romSize",
-        "romCRC","imageNumber"
+        "releaseNumber",
+        "imageNumber",
+        "im1CRC",
+        "im2CRC",
+        "title",
+        "publisher",
+        "sourceRom",
+        "location",
+        "languages",
+        "comment",
+        "romSize",
+        "romCRC",
+        "saveType"
     )
     foreach ($name in $infos) {
         [void]$sb.AppendLine("      <${name} visible=""true"" inNamingOption=""true"" default=""true"" />")
@@ -646,7 +656,7 @@ function Build-ConfigurationXml([string]$datVersion) {
 
     [void]$sb.AppendLine("    </newDat>")
     [void]$sb.AppendLine("    <search>")
-    $searchTargets = @("publisher","sourceRom","saveType","location","languages","duplicateID")
+    $searchTargets = @("publisher","sourceRom","saveType","location","languages")
     foreach ($v in $searchTargets) {
         [void]$sb.AppendLine("      <to value=""$v"" default=""true"" auto=""true"" />")
     }
