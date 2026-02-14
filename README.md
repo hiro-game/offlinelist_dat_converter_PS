@@ -30,9 +30,6 @@ PowerShell 5.1 でも動作します。
   - `<screenshotsWidth>` / `<screenshotsHeight>`
   - `<newDat>`（`datVersionURL` / `datURL` / `imURL`）
 - **出力形式は XML / XML(zip) の 2 種類**
-- **ZIP 出力は 7za.exe / 7z.exe がある場合のみ対応**
-- **ZIP の入力は PowerShell 標準で対応**
-- **7Z の入力は 7za.exe / 7z.exe がある場合のみ対応**
 
 ---
 
@@ -91,7 +88,6 @@ PowerShell 5.1 でも動作します。
 3. **出力形式** を選択します：
    - **XML**：プレーンな XML ファイルを出力  
    - **XML (zip)**：XML を単一ファイル ZIP にまとめて出力  
-     - ZIP 出力には 7za.exe / 7z.exe が必要です
 4. 「変換」ボタンを押すと、  
    - XML の場合：`<元 CSV 名>.xml`  
    - XML(zip) の場合：`<元 CSV 名>.zip`  
@@ -116,11 +112,6 @@ PowerShell 5.1 でも動作します。
 ---
 
 ### 5. 注意事項
-
-- **ZIP 出力には 7za.exe / 7z.exe が必須**です。  
-  見つからない場合、XML(zip) 出力はエラーになります。
-- **ZIP の入力（解凍）は PowerShell 標準機能で対応**しています。
-- **7Z の入力（解凍）は 7za.exe / 7z.exe が必要**です。
 - OfflineList の仕様に依存するため、  
   不正な値や空欄が多い場合、OfflineList 側で正しく認識されない可能性があります。
 - `baseURL` と `datVersionURL` / `datURL` / `imURL` の組み合わせは  
@@ -132,9 +123,6 @@ PowerShell 5.1 でも動作します。
 
 - Windows 10 / 11  
 - PowerShell 5.1 または PowerShell 7.x  
-- ZIP 出力を行う場合は **7za.exe または 7z.exe が必要**  
-- 7Z の入力（解凍）にも **7za.exe / 7z.exe が必要**
-
 ---
 
 ## インストール
@@ -150,15 +138,12 @@ pwsh -WindowStyle Hidden -ExecutionPolicy Bypass -File .\OLDATCONV.ps1
 ---
 注意事項
 本アプリは OfflineList DAT の仕様に基づいて動作します
-
-ZIP 出力には 7za.exe  / 7z.exe  が必要です
-
-7Z の入力（解凍）にも 7za.exe  / 7z.exe  が必要です
 ---
 ライセンス
 本プロジェクトは MIT License のもとで公開されています。
 
 本アプリは Microsoft Copilot の支援により作成されています
+
 
 
 
