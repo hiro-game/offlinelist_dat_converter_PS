@@ -4,7 +4,7 @@
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="OfflineList DAT CSV Converter" Height="520" Width="720"
+        Title="OfflineList DAT Converter" Height="520" Width="720"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True">
     <Grid Margin="8">
@@ -545,48 +545,40 @@ function Ensure-CanOpenExt {
 
 function Build-ConfigurationXml([string]$datVersion) {
     Ensure-CanOpenExt
-    $datName = $TxtDatName.Text
-    $system  = $TxtSystem.Text
-    $canExt  = $TxtCanOpenExt.Text
-    $baseUrl = Normalize-BaseUrl $TxtBaseUrl.Text
+    $datName  = $TxtDatName.Text
+    $system   = $TxtSystem.Text
+    $canExt   = $TxtCanOpenExt.Text
+    $baseUrl  = Normalize-BaseUrl $TxtBaseUrl.Text
     $romTitle = $TxtRomTitle.Text
-    $w = $TxtScreenshotsWidth.Text
-    $h = $TxtScreenshotsHeight.Text
+    if ([string]::IsNullOrWhiteSpace($datName)) {
+        $datName = "gameDat"
+    }
+    $w        = $TxtScreenshotsWidth.Text
+    $h        = $TxtScreenshotsHeight.Text
 
     # エスケープ
-    $datNameEsc = [System.Security.SecurityElement]::Escape($datName)
-    $systemEsc  = [System.Security.SecurityElement]::Escape($system)
-    $canExtEsc  = [System.Security.SecurityElement]::Escape($canExt)
-    $romTitleEsc = [System.Security.SecurityElement]::Escape($romTitle)
+    $datNameEsc   = [System.Security.SecurityElement]::Escape($datName)
+    $systemEsc    = [System.Security.SecurityElement]::Escape($system)
+    $canExtEsc    = [System.Security.SecurityElement]::Escape($canExt)
+    $romTitleEsc  = [System.Security.SecurityElement]::Escape($romTitle)
 
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine("  <configuration>")
     [void]$sb.AppendLine("    <datName>$datNameEsc</datName>")
     [void]$sb.AppendLine("    <datVersion>$datVersion</datVersion>")
     [void]$sb.AppendLine("    <system>$systemEsc</system>")
-    # configuration の imFolder を出力
+
+    # imFolder（省略形なし）
     $imFolderConf = $TxtImFolder.Text
-    if ($imFolderConf) {
-        $imConfEsc = [System.Security.SecurityElement]::Escape($imFolderConf)
-        [void]$sb.AppendLine("    <imFolder>$imConfEsc</imFolder>")
-    } else {
-        [void]$sb.AppendLine("    <imFolder/>")
-    }
-    # screenshotsWidth / screenshotsHeight 出力
-    $w = $TxtScreenshotsWidth.Text
-    $h = $TxtScreenshotsHeight.Text
+    $imConfEsc    = [System.Security.SecurityElement]::Escape($imFolderConf)
+    [void]$sb.AppendLine("    <imFolder>$imConfEsc</imFolder>")
 
-    if ($w) {
-        [void]$sb.AppendLine("    <screenshotsWidth>$w</screenshotsWidth>")
-    } else {
-        [void]$sb.AppendLine("    <screenshotsWidth/>")
-    }
+    # screenshotsWidth / screenshotsHeight（空でも 0 を入れる）
+    if ([string]::IsNullOrWhiteSpace($w)) { $w = "0" }
+    if ([string]::IsNullOrWhiteSpace($h)) { $h = "0" }
 
-    if ($h) {
-        [void]$sb.AppendLine("    <screenshotsHeight>$h</screenshotsHeight>")
-    } else {
-        [void]$sb.AppendLine("    <screenshotsHeight/>")
-    }
+    [void]$sb.AppendLine("    <screenshotsWidth>$w</screenshotsWidth>")
+    [void]$sb.AppendLine("    <screenshotsHeight>$h</screenshotsHeight>")
 
     [void]$sb.AppendLine("    <infos>")
     $infos = @(
@@ -605,18 +597,29 @@ function Build-ConfigurationXml([string]$datVersion) {
         "saveType"
     )
     foreach ($name in $infos) {
-        [void]$sb.AppendLine("      <${name} visible=""true"" inNamingOption=""true"" default=""true"" />")
+        if ($name -eq "title") {
+            [void]$sb.AppendLine("      <title visible=""false"" inNamingOption=""true"" default=""false"" />")
+        }
+        else {
+            [void]$sb.AppendLine("      <${name} visible=""true"" inNamingOption=""true"" default=""true"" />")
+        }
     }
     [void]$sb.AppendLine("    </infos>")
+
     [void]$sb.AppendLine("    <canOpen>")
     [void]$sb.AppendLine("      <extension>$canExtEsc</extension>")
     [void]$sb.AppendLine("    </canOpen>")
+
     [void]$sb.AppendLine("    <newDat>")
 
-    $systemRaw = $TxtSystem.Text
-    $fileNameAttr = $TxtDatUrlFileName.Text
-    if ([string]::IsNullOrWhiteSpace($fileNameAttr)) {
-        $fileNameAttr = "$systemRaw.zip"
+    $systemRaw   = $TxtSystem.Text
+    $datFileInput = $TxtDatUrlFileName.Text
+
+    # fileName 属性は必ず付ける（system が空でも ".zip" を付ける）
+    if ([string]::IsNullOrWhiteSpace($datFileInput)) {
+        $fileNameAttr = ($systemRaw + ".zip")
+    } else {
+        $fileNameAttr = $datFileInput
     }
 
     # baseURL（Normalize-BaseUrl で末尾 / 保証済み）
@@ -624,43 +627,40 @@ function Build-ConfigurationXml([string]$datVersion) {
     
     # newDat の値（UI にはファイル名だけ入っている）
     $datVersionFile = $TxtDatVersionUrl.Text
-    $datFile        = $TxtDatUrlFileName.Text
+    $datFile        = $fileNameAttr
     $imFolder       = $TxtImFolder.Text
 
-    # XML に書き込む完全 URL を生成
-    $datVersionUrl = if ($datVersionFile) { $baseUrl + $datVersionFile } else { "" }
-    $datUrl        = if ($datFile)        { $baseUrl + $datFile }        else { "" }
-    $imUrl         = if ($imFolder)       { $baseUrl + $imFolder }       else { "" }
-
-    if ($datVersionUrl) {
-        $dvEsc = [System.Security.SecurityElement]::Escape($datVersionUrl)
-        [void]$sb.AppendLine("      <datVersionURL>$dvEsc</datVersionURL>")
-    } else {
-        [void]$sb.AppendLine("      <datVersionURL/>")
+    # URL 部分の生成（baseURL が空なら URL 部分は空にする）
+    if ([string]::IsNullOrWhiteSpace($baseUrl)) {
+        $datVersionUrl = ""
+        $datUrl        = ""
+        $imUrl         = ""
+    }
+    else {
+        $datVersionUrl = if ($datVersionFile) { $baseUrl + $datVersionFile } else { "" }
+        $datUrl        = if ($datFileInput)   { $baseUrl + $datFileInput }   else { "" }
+        $imUrl         = if ($imFolder)       { $baseUrl + $imFolder }       else { "" }
     }
 
-    $fnEsc = [System.Security.SecurityElement]::Escape($datFile)
-    if ($datUrl) {
-        $duEsc = [System.Security.SecurityElement]::Escape($datUrl)
-        [void]$sb.AppendLine("      <datURL fileName=""$fnEsc"">$duEsc</datURL>")
-    } else {
-        [void]$sb.AppendLine("      <datURL fileName=""$fnEsc""/>")
-    }
+    $dvEsc = [System.Security.SecurityElement]::Escape($datVersionUrl)
+    [void]$sb.AppendLine("      <datVersionURL>$dvEsc</datVersionURL>")
 
-    if ($imUrl) {
-        $imEsc = [System.Security.SecurityElement]::Escape($imUrl)
-        [void]$sb.AppendLine("      <imURL>$imEsc</imURL>")
-    } else {
-        [void]$sb.AppendLine("      <imURL/>")
-    }
+    $fnEsc = [System.Security.SecurityElement]::Escape($fileNameAttr)
+    $duEsc = [System.Security.SecurityElement]::Escape($datUrl)
+    [void]$sb.AppendLine("      <datURL fileName=""$fnEsc"">$duEsc</datURL>")
+
+    $imEsc = [System.Security.SecurityElement]::Escape($imUrl)
+    [void]$sb.AppendLine("      <imURL>$imEsc</imURL>")
 
     [void]$sb.AppendLine("    </newDat>")
+
     [void]$sb.AppendLine("    <search>")
     $searchTargets = @("publisher","sourceRom","saveType","location","languages")
     foreach ($v in $searchTargets) {
         [void]$sb.AppendLine("      <to value=""$v"" default=""true"" auto=""true"" />")
     }
     [void]$sb.AppendLine("    </search>")
+
     [void]$sb.AppendLine("    <romTitle>$romTitleEsc</romTitle>")
     [void]$sb.AppendLine("  </configuration>")
     return $sb.ToString()
@@ -719,7 +719,7 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
 
         foreach ($k in $fields.Keys) {
             $v = $fields[$k]
-            if (-not $v) { $v = "" }  # 必須でないものも空要素OK
+            if (-not $v) { $v = "" }
             $esc = [System.Security.SecurityElement]::Escape($v)
             [void]$sb.AppendLine("      <$k>$esc</$k>")
         }
@@ -759,45 +759,56 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
     $outDir = [System.IO.Path]::GetDirectoryName($csvPath)
 
     if ($ChkUseDatFileName.IsChecked) {
-        # チェック ON → GUI の DATファイル名を使用
         $fileName = $TxtDatUrlFileName.Text
         if (-not $fileName) {
-            # 念のため system.zip から system を抽出
             $fileName = ($TxtSystem.Text + ".zip")
         }
         $baseName = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
     }
     else {
-        # チェック OFF → 元の CSV のファイル名を使用
         $baseName = (Get-BaseNameFromPath $csvPath)
     }
 
     $outXmlPath = Join-Path $outDir ($baseName + ".xml")
 
-    # UTF-8 (BOMなし) で出力
-    $sw = New-Object System.IO.StreamWriter($outXmlPath, $false, (New-Object System.Text.UTF8Encoding($false)))
-    $sw.Write($xmlContent)
-    $sw.Close()
-    Write-Log "XML 出力: $outXmlPath"
+    # ★ XML 出力モード（従来通り）
+    if ($outKind -ne "Zip") {
+        $sw = New-Object System.IO.StreamWriter($outXmlPath, $false, (New-Object System.Text.UTF8Encoding($false)))
+        $sw.Write($xmlContent)
+        $sw.Close()
+        Write-Log "XML 出力: $outXmlPath"
+    }
 
+    # ★ バージョンファイル
     if ($ChkVersionFile.IsChecked) {
         $verPath = Join-Path $outDir ($system + ".txt")
         $datVersion | Out-File -FilePath $verPath -Encoding ASCII
         Write-Log "バージョンファイル出力: $verPath"
     }
 
+    # ★ ZIP 出力（完全メモリ処理）
     if ($outKind -eq "Zip") {
-        if (-not $Global:SevenZipPath) {
-            throw "7za.exe が無いため ZIP 出力はできません。"
-        }
 
-        $archiveExt = ".zip"
-        $archivePath = Join-Path $outDir ($baseName + $archiveExt)
-
+        $archivePath = Join-Path $outDir ($baseName + ".zip")
         if (Test-Path $archivePath) { Remove-Item $archivePath -Force }
 
-        $args = @("a","-y",$archivePath,$outXmlPath)
-        & $Global:SevenZipPath @args | Out-Null
+        # XML を UTF-8 バイト配列に変換（BOMなし）
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        $bytes = $utf8.GetBytes($xmlContent)
+
+        # ZIP 作成
+        $fs = [System.IO.File]::Create($archivePath)
+        $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create)
+
+        # ZIP 内に XML を追加（日本語ファイル名もOK）
+        $entry = $zip.CreateEntry($baseName + ".xml")
+        $es = $entry.Open()
+        $es.Write($bytes, 0, $bytes.Length)
+        $es.Close()
+
+        $zip.Dispose()
+        $fs.Close()
+
         Write-Log "アーカイブ出力: $archivePath"
     }
 }
