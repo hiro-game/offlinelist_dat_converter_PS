@@ -160,27 +160,36 @@ $xaml = @"
             </Grid>
         </GroupBox>
 
-        <!-- 出力形式 + 実行ボタン（右詰め） -->
-        <Grid Grid.Row="5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+            <!-- 出力形式 + 実行ボタン（右詰め） -->
+            <Grid Grid.Row="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                <TextBlock Text="出力形式:" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <ComboBox x:Name="CmbOutputKindBottom" Width="140" SelectedIndex="0">
-                    <ComboBoxItem Content="XML" Tag="Xml"/>
-                    <ComboBoxItem Content="ZIP" Tag="Zip"/>
-                </ComboBox>
-            </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <TextBlock Text="出力形式:" VerticalAlignment="Center" Margin="0,0,4,0"/>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="BtnConvert" Content="変換実行" Width="100" Margin="0,0,8,0"/>
-                <Button x:Name="BtnClose" Content="閉じる" Width="80"/>
-            </StackPanel>
-        </Grid>
+                    <!-- ★ 通常モード（CSV 以外）で表示する XML/ZIP 選択 -->
+                    <ComboBox x:Name="CmbOutputKindBottom" Width="140" SelectedIndex="0" Visibility="Visible">
+                        <ComboBoxItem Content="XML" Tag="Xml"/>
+                        <ComboBoxItem Content="ZIP" Tag="Zip"/>
+                    </ComboBox>
+
+                    <!-- ★ xml/zip 読み込み時だけ表示する CSV 固定ラベル -->
+                    <TextBlock x:Name="TxtOutputKindCsv"
+                               Text="CSV"
+                               VerticalAlignment="Center"
+                               Margin="0,0,0,0"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="BtnConvert" Content="変換実行" Width="100" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnClose" Content="閉じる" Width="80"/>
+                </StackPanel>
+            </Grid>
 
     </Grid>
 </Window>
@@ -204,6 +213,7 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 $BtnSelectFile      = $window.FindName("BtnSelectFile")
 $TxtInputFile       = $window.FindName("TxtInputFile")
 $CmbOutputKindBottom      = $window.FindName("CmbOutputKindBottom")
+$TxtOutputKindCsv = $window.FindName("TxtOutputKindCsv")
 $ChkVersionFile     = $window.FindName("ChkVersionFile")
 $ChkUseDatFileName  = $window.FindName("ChkUseDatFileName")
 $TxtDatName         = $window.FindName("TxtDatName")
@@ -266,20 +276,6 @@ $TxtSystem.AddHandler(
     $pasteEvent,
     [Windows.DataObjectPastingEventHandler]$onPasteSystem
 )
-
-# 7z 検出
-$Global:SevenZipPath = $null
-if (Get-Command "7za.exe" -ErrorAction SilentlyContinue) {
-    $Global:SevenZipPath = "7za.exe"
-    Write-Log "7za.exe を使用します（ZIP 出力および 7z 解凍に対応）"
-}
-elseif (Get-Command "7z.exe" -ErrorAction SilentlyContinue) {
-    $Global:SevenZipPath = "7z.exe"
-    Write-Log "7z.exe を使用します（ZIP 出力および 7z 解凍に対応）"
-}
-else {
-    Write-Log "7za.exe / 7z.exe が見つかりません。ZIP 出力は無効になります。"
-}
 
 # 初期値
 $TxtScreenshotsWidth.Text  = "320"
@@ -355,15 +351,101 @@ function Update-NewDatFields {
 $TxtSystem.Add_TextChanged({ Update-NewDatFields })
 $TxtBaseUrl.Add_TextChanged({ Update-NewDatFields })
 
+function Set-UiForCsvMode {
+
+    # 出力形式を CSV のみにする
+    $CmbOutputKindBottom.Items.Clear()
+
+    $item = New-Object System.Windows.Controls.ComboBoxItem
+    $item.Content = "CSV"
+    $item.Tag = "Csv"
+    $CmbOutputKindBottom.Items.Add($item)
+
+    $CmbOutputKindBottom.SelectedIndex = 0
+    $CmbOutputKindBottom.IsEnabled = $false
+
+    # DAT 用 UI を無効化
+    $controls = @(
+        $TxtSystem,
+        $TxtDatName,
+        $TxtRomTitle,
+        $TxtDatUrlFileName,
+        $ChkUseDatFileName,
+        $ChkVersionFile,
+        $BtnEditRomTitle,
+        $TxtScreenshotsWidth,
+        $TxtScreenshotsHeight,
+        $TxtBaseUrl,
+        $TxtDatVersionUrl,
+        $TxtImUrl,
+        $TxtImFolder,
+        $TxtCanOpenExt
+    )
+
+    foreach ($c in $controls) {
+        if ($c) { $c.IsEnabled = $false }
+    }
+}
+function Reset-UiNormal {
+
+    # 出力形式を XML / ZIP に戻す
+    $CmbOutputKindBottom.Items.Clear()
+
+    $xml = New-Object System.Windows.Controls.ComboBoxItem
+    $xml.Content = "XML"
+    $xml.Tag = "Xml"
+    $CmbOutputKindBottom.Items.Add($xml)
+
+    $zip = New-Object System.Windows.Controls.ComboBoxItem
+    $zip.Content = "ZIP"
+    $zip.Tag = "Zip"
+    $CmbOutputKindBottom.Items.Add($zip)
+
+    $CmbOutputKindBottom.SelectedIndex = 0
+    $CmbOutputKindBottom.IsEnabled = $true
+
+    # DAT 用 UI を有効化
+    $controls = @(
+        $TxtSystem,
+        $TxtDatName,
+        $TxtRomTitle,
+        $TxtDatUrlFileName,
+        $ChkUseDatFileName,
+        $ChkVersionFile,
+        $BtnEditRomTitle,
+        $TxtScreenshotsWidth,
+        $TxtScreenshotsHeight,
+        $TxtBaseUrl,
+        $TxtDatVersionUrl,
+        $TxtImUrl,
+        $TxtImFolder,
+        $TxtCanOpenExt
+    )
+
+    foreach ($c in $controls) {
+        if ($c) { $c.IsEnabled = $true }
+    }
+}
+
 function Set-From-InputFile($path) {
+
+    $ext = [System.IO.Path]::GetExtension($path).ToLowerInvariant()
+
+    # ★ xml / zip → CSV モード
+    if ($ext -eq ".xml" -or $ext -eq ".zip") {
+        Set-UiForCsvMode
+    }
+    else {
+        Reset-UiNormal
+    }
+
+    # ここから従来の処理
     $TxtInputFile.Text = $path
     $baseName = Get-BaseNameFromPath $path
 
     if ($baseName) {
-        # datName は全角OK
         $TxtDatName.Text = $baseName
 
-        # system は半角英数字 . _ - のみ許可
         if ($baseName -match '^[A-Za-z0-9._-]+$') {
             $TxtSystem.Text = $baseName
         } else {
@@ -377,11 +459,7 @@ function Set-From-InputFile($path) {
 # ファイル選択
 $BtnSelectFile.Add_Click({
     $ofd = New-Object Microsoft.Win32.OpenFileDialog
-    if ($Global:SevenZipPath) {
-        $ofd.Filter = "対応ファイル|*.xml;*.csv;*.zip"
-    } else {
-        $ofd.Filter = "対応ファイル|*.xml;*.csv"
-    }
+    $ofd.Filter = "対応ファイル|*.xml;*.csv;*.zip"
     if ($ofd.ShowDialog()) {
         Set-From-InputFile $ofd.FileName
     }
@@ -396,15 +474,15 @@ $window.Add_DragOver({
     }
     $_.Handled = $true
 })
+
 $window.Add_Drop({
     $files = $_.Data.GetData([Windows.DataFormats]::FileDrop)
     if ($files -and $files.Count -gt 0) {
         $file = $files[0]
         $ext = [System.IO.Path]::GetExtension($file).ToLowerInvariant()
-        $allowed = @(".xml",".csv")
-        if ($Global:SevenZipPath) {
-            $allowed += ".zip",".7z"
-        }
+
+        $allowed = @(".xml", ".csv", ".zip")
+
         if ($ext -in $allowed) {
             Set-From-InputFile $file
         } else {
@@ -607,8 +685,25 @@ function Build-ConfigurationXml([string]$datVersion) {
     [void]$sb.AppendLine("    </infos>")
 
     [void]$sb.AppendLine("    <canOpen>")
-    [void]$sb.AppendLine("      <extension>$canExtEsc</extension>")
+
+    # ROM拡張子（スペース区切り）を分割
+    $extList = $TxtCanOpenExt.Text.Trim() -split '\s+'
+
+    foreach ($ext in $extList) {
+        if (-not [string]::IsNullOrWhiteSpace($ext)) {
+
+            # 先頭に . が無ければ付ける
+            if (-not $ext.StartsWith(".")) {
+                $ext = "." + $ext
+            }
+
+            $extEsc = [System.Security.SecurityElement]::Escape($ext)
+            [void]$sb.AppendLine("      <extension>$extEsc</extension>")
+        }
+    }
+
     [void]$sb.AppendLine("    </canOpen>")
+
 
     [void]$sb.AppendLine("    <newDat>")
 
@@ -624,7 +719,7 @@ function Build-ConfigurationXml([string]$datVersion) {
 
     # baseURL（Normalize-BaseUrl で末尾 / 保証済み）
     $baseUrl = Normalize-BaseUrl $TxtBaseUrl.Text
-    
+
     # newDat の値（UI にはファイル名だけ入っている）
     $datVersionFile = $TxtDatVersionUrl.Text
     $datFile        = $fileNameAttr
@@ -789,6 +884,16 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
     # ★ ZIP 出力（完全メモリ処理）
     if ($outKind -eq "Zip") {
 
+        # ★ 出力フォルダが指定されていれば優先、空なら入力フォルダ
+        if ([string]::IsNullOrWhiteSpace($TxtOutputFolder.Text)) {
+            # 入力ファイルと同じフォルダ
+            $outDir = [System.IO.Path]::GetDirectoryName($csvPath)
+        }
+        else {
+            # 出力フォルダを優先
+            $outDir = $TxtOutputFolder.Text
+        }
+
         $archivePath = Join-Path $outDir ($baseName + ".zip")
         if (Test-Path $archivePath) { Remove-Item $archivePath -Force }
 
@@ -800,7 +905,7 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
         $fs = [System.IO.File]::Create($archivePath)
         $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create)
 
-        # ZIP 内に XML を追加（日本語ファイル名もOK）
+        # ZIP 内に XML を追加
         $entry = $zip.CreateEntry($baseName + ".xml")
         $es = $entry.Open()
         $es.Write($bytes, 0, $bytes.Length)
@@ -873,24 +978,46 @@ function Xml-ToCsv([string]$xmlPath, [string]$outDir) {
 }
 
 function Extract-XmlFromArchive([string]$archivePath) {
-    if (-not $Global:SevenZipPath) {
-        throw "7za.exe / 7z.exe が無いためアーカイブ入力はできません。"
+
+    if (-not (Test-Path $archivePath)) {
+        throw "アーカイブが存在しません: $archivePath"
     }
 
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("OLCSV_" + [System.Guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Path $tempDir | Out-Null
+    # ZIP を開く
+    $fs = [System.IO.File]::OpenRead($archivePath)
+    $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Read)
 
-    $args = @("e","-y","-o$tempDir",$archivePath,"*.xml")
-    & $Global:SevenZipPath @args | Out-Null
+    # *.xml のエントリを探す
+    $xmlEntry = $zip.Entries | Where-Object { $_.FullName.ToLower().EndsWith(".xml") }
 
-    $xmlFiles = Get-ChildItem -Path $tempDir -Filter *.xml
-    if ($xmlFiles.Count -ne 1) {
+    if ($xmlEntry.Count -ne 1) {
+        $zip.Dispose()
+        $fs.Close()
         throw "アーカイブ内の XML が単一ではありません。"
     }
 
-    # ★ 元の zip のフォルダも返す
+    # ★ ZIP 内の元のファイル名を取得
+    $originalName = $xmlEntry.FullName
+
+    # ★ 一時フォルダに元のファイル名で保存
+    $tempDir = [System.IO.Path]::GetTempPath()
+    $tempXml = Join-Path $tempDir $originalName
+
+    # 同名ファイルがあれば削除
+    if (Test-Path $tempXml) { Remove-Item $tempXml -Force }
+
+    # XML を書き出し
+    $es = $xmlEntry.Open()
+    $fsOut = [System.IO.File]::Create($tempXml)
+    $es.CopyTo($fsOut)
+    $fsOut.Close()
+    $es.Close()
+
+    $zip.Dispose()
+    $fs.Close()
+
     return @{
-        XmlPath = $xmlFiles[0].FullName
+        XmlPath = $tempXml
         OutDir  = [System.IO.Path]::GetDirectoryName($archivePath)
     }
 }
@@ -929,33 +1056,22 @@ $BtnConvert.Add_Click({
         $ext = [System.IO.Path]::GetExtension($path).ToLowerInvariant()
 
         switch ($ext) {
-        
+
             ".xml" {
                 Xml-ToCsv -xmlPath $path -outDir $outputDir
             }
-        
+
             ".csv" {
                 $selectedItem = $CmbOutputKindBottom.SelectedItem
                 $kind = $selectedItem.Tag
                 Csv-ToXml -csvPath $path -outKind $kind -outDir $outputDir
             }
-        
+
             ".zip" {
-                if (-not $Global:SevenZipPath) {
-                    throw "7za.exe / 7z.exe が無いため zip 入力はできません。"
-                }
                 $result = Extract-XmlFromArchive -archivePath $path
                 Xml-ToCsv -xmlPath $result.XmlPath -outDir $outputDir
             }
-        
-            ".7z" {
-                if (-not $Global:SevenZipPath) {
-                    throw "7za.exe / 7z.exe が無いため 7z 入力はできません。"
-                }
-                $result = Extract-XmlFromArchive -archivePath $path
-                Xml-ToCsv -xmlPath $result.XmlPath -outDir $outputDir
-            }
-        
+
             default {
                 throw "対応していない拡張子です: $ext"
             }
