@@ -315,6 +315,17 @@ function Read-XmlWithDeclaredEncoding([string]$path) {
     return [xml]$xmlText
 }
 
+function Get-OutputDirectory([string]$inputPath) {
+
+    # ユーザーが出力フォルダを指定している場合はそちらを優先
+    if (-not [string]::IsNullOrWhiteSpace($TxtOutputFolder.Text)) {
+        return $TxtOutputFolder.Text
+    }
+
+    # 指定が無ければ入力ファイルと同じフォルダ
+    return [System.IO.Path]::GetDirectoryName($inputPath)
+}
+
 function Update-NewDatFields {
 
     $system  = $TxtSystem.Text
@@ -799,7 +810,7 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
         [void]$sb.AppendLine("      <imageNumber>$imageNumber</imageNumber>")
 
         # im1CRC / im2CRC / title / publisher / sourceRom / location / language / comment / saveType / romSize
-        $fields = @{
+        $fields = [ordered]@{
             im1CRC    = $row.im1CRC
             im2CRC    = $row.im2CRC
             title     = $row.title
@@ -808,8 +819,8 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
             location  = $row.location
             language  = $row.language
             comment   = $row.comment
-            saveType  = $row.saveType
             romSize   = $row.romSize
+            saveType  = $row.saveType
         }
 
         foreach ($k in $fields.Keys) {
@@ -851,7 +862,7 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
     }
 
     # 出力ファイル名の決定
-    $outDir = [System.IO.Path]::GetDirectoryName($csvPath)
+    $outDir = Get-OutputDirectory $csvPath
 
     if ($ChkUseDatFileName.IsChecked) {
         $fileName = $TxtDatUrlFileName.Text
@@ -884,15 +895,7 @@ function Csv-ToXml([string]$csvPath, [string]$outKind) {
     # ★ ZIP 出力（完全メモリ処理）
     if ($outKind -eq "Zip") {
 
-        # ★ 出力フォルダが指定されていれば優先、空なら入力フォルダ
-        if ([string]::IsNullOrWhiteSpace($TxtOutputFolder.Text)) {
-            # 入力ファイルと同じフォルダ
-            $outDir = [System.IO.Path]::GetDirectoryName($csvPath)
-        }
-        else {
-            # 出力フォルダを優先
-            $outDir = $TxtOutputFolder.Text
-        }
+        $outDir = Get-OutputDirectory $csvPath
 
         $archivePath = Join-Path $outDir ($baseName + ".zip")
         if (Test-Path $archivePath) { Remove-Item $archivePath -Force }
@@ -946,9 +949,9 @@ function Xml-ToCsv([string]$xmlPath, [string]$outDir) {
             comment       = $g.comment
             saveType      = $g.saveType
             romSize       = $g.romSize
-            duplicateID   = $g.duplicateID
             extension     = $null
             romCRC        = $null
+            duplicateID   = $g.duplicateID
         }
 
         $romNode = $g.files.romCRC | Select-Object -First 1
@@ -1038,38 +1041,24 @@ $BtnConvert.Add_Click({
             return
         }
 
-        # ★ 出力フォルダの決定（ここを追加）
-        if ($TxtOutputFolder.Text) {
-            # ユーザーが指定したフォルダ
-            $outputDir = $TxtOutputFolder.Text
-        } else {
-            # 入力ファイルと同じフォルダ
-            $outputDir = Split-Path $path
-        }
-
-        # フォルダが存在しなければ作成
-        if (-not (Test-Path $outputDir)) {
-            New-Item -ItemType Directory -Path $outputDir | Out-Null
-        }
-
         # 拡張子判定
         $ext = [System.IO.Path]::GetExtension($path).ToLowerInvariant()
 
         switch ($ext) {
 
             ".xml" {
-                Xml-ToCsv -xmlPath $path -outDir $outputDir
+                Xml-ToCsv -xmlPath $path
             }
 
             ".csv" {
                 $selectedItem = $CmbOutputKindBottom.SelectedItem
                 $kind = $selectedItem.Tag
-                Csv-ToXml -csvPath $path -outKind $kind -outDir $outputDir
+                Csv-ToXml -csvPath $path -outKind $kind
             }
 
             ".zip" {
                 $result = Extract-XmlFromArchive -archivePath $path
-                Xml-ToCsv -xmlPath $result.XmlPath -outDir $outputDir
+                Xml-ToCsv -xmlPath $result.XmlPath
             }
 
             default {
@@ -1077,7 +1066,7 @@ $BtnConvert.Add_Click({
             }
         }
 
-        Write-Log "変換完了。出力先: $outputDir"
+        Write-Log "変換完了。"
 
     } catch {
         Write-Log "エラー: $($_.Exception.Message)"
